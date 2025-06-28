@@ -1,0 +1,6 @@
+<div class="embedded-event">
+    <h3><a href="{{ url_for('event_detail', event_id=event.id) }}">{{ event.title }}</a></h3>
+    <p>{{ event.description }}</p>
+    {% if event.schedule %}<p><strong>Schedule:</strong> {{ event.schedule }}</p>{% endif %}
+    {% if event.organizing_body %}<p><strong>Organized by:</strong> {{ event.organizing_body }}</p>{% endif %}
+</div>

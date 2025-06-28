@@ -5,13 +5,13 @@ from flask_admin.contrib.sqla import ModelView
 from flask_wtf import FlaskForm
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_sqlalchemy import SQLAlchemy
-from flask_admin import Admin
-from flask_admin.contrib.sqla import ModelView
+# from flask_admin import Admin
+# from flask_admin.contrib.sqla import ModelView
 from flask_wtf import FlaskForm
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_sqlalchemy import SQLAlchemy
-from flask_admin import Admin
-from flask_admin.contrib.sqla import ModelView
+# from flask_admin import Admin
+# from flask_admin.contrib.sqla import ModelView
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SubmitField, SelectField, BooleanField
 from wtforms.validators import DataRequired, Length, Optional
@@ -20,6 +20,8 @@ from flask_wtf.file import FileField, FileAllowed
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
+import re
+from flask_migrate import Migrate
 
 app = Flask(__name__)
 
@@ -28,7 +30,18 @@ class PageForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired(), Length(max=100)])
     slug = StringField('Slug', validators=[DataRequired(), Length(max=100)])
     content = TextAreaField('Content', validators=[DataRequired()])
-    order = StringField('Order', validators=[Optional()]) # Using StringField for simplicity, can be IntegerField
+    order = StringField('Order', validators=[Optional()])
+    parent_page = QuerySelectField('Parent Page', query_factory=lambda: Page.query.order_by(Page.title).all(), get_label='title', allow_blank=True, blank_text='-- No Parent --')
+    submit = SubmitField('Submit')
+
+class EventForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired(), Length(max=100)])
+    description = TextAreaField('Description', validators=[DataRequired()])
+    schedule = TextAreaField('Schedule', validators=[Optional()])
+    organizing_body = StringField('Organizing Body', validators=[Optional(), Length(max=100)])
+    registration_form = QuerySelectField('Registration Form', query_factory=lambda: RegistrationForm.query.all(), get_label='name', allow_blank=True, blank_text='-- No Form --')
+    page = QuerySelectField('Linked Page', query_factory=lambda: Page.query.order_by(Page.title).all(), get_label='title', allow_blank=True, blank_text='-- No Page --')
+    is_upcoming = BooleanField('Upcoming Event (Show on Home Page)')
     submit = SubmitField('Submit')
 
 class PhotoForm(FlaskForm):
@@ -49,6 +62,7 @@ app.config['FLASK_ADMIN_SWATCH'] = 'cerulean'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 admin = Admin(app, name='Kalpataru Admin', template_mode='bootstrap3')
 
 # Models
@@ -59,7 +73,10 @@ class Event(db.Model):
     schedule = db.Column(db.Text, nullable=True)
     organizing_body = db.Column(db.String(100), nullable=True)
     registration_form_id = db.Column(db.Integer, db.ForeignKey('registration_form.id'), nullable=True)
+    page_id = db.Column(db.Integer, db.ForeignKey('page.id'), nullable=True)
+    is_upcoming = db.Column(db.Boolean, default=False)
     photos = db.relationship('Photo', backref='event', lazy=True)
+    page = db.relationship('Page', backref='events', lazy=True)
 
     def __repr__(self):
         return f"Event('{self.title}')"
@@ -79,6 +96,8 @@ class Page(db.Model):
     slug = db.Column(db.String(100), unique=True, nullable=False)
     content = db.Column(db.Text, nullable=False)
     order = db.Column(db.Integer, default=0)
+    parent_id = db.Column(db.Integer, db.ForeignKey('page.id'), nullable=True)
+    children = db.relationship('Page', backref=db.backref('parent', remote_side=[id]), lazy='dynamic')
 
     def __repr__(self):
         return f"Page('{self.title}')"
@@ -159,17 +178,37 @@ class CustomPhotoView(ModelView):
             model.activity = form.activity.data
 
 class CustomEventView(ModelView):
-    column_list = ('title', 'schedule', 'organizing_body', 'registration_form')
-    form_columns = ('title', 'description', 'schedule', 'organizing_body', 'registration_form_id', 'photos')
+    form = EventForm
+    column_list = ('title', 'schedule', 'organizing_body', 'registration_form', 'page', 'is_upcoming')
+    form_columns = ('title', 'description', 'schedule', 'organizing_body', 'registration_form', 'page', 'is_upcoming')
+
+    def on_model_change(self, form, model, is_created):
+        if form.registration_form.data:
+            model.registration_form_id = form.registration_form.data.id
+        else:
+            model.registration_form_id = None
+        
+        if form.page.data:
+            model.page_id = form.page.data.id
+        else:
+            model.page_id = None
+        
+        model.is_upcoming = form.is_upcoming.data
 
 class CustomActivityView(ModelView):
     column_list = ('title', 'description')
     form_columns = ('title', 'description', 'photos')
 
 class CustomPageView(ModelView):
-    column_list = ('title', 'slug', 'order')
-    form_columns = ('title', 'slug', 'content', 'order')
+    column_list = ('title', 'slug', 'order', 'parent')
+    form_columns = ('title', 'slug', 'content', 'order', 'parent_page')
     form = PageForm # Use the custom form
+
+    def on_model_change(self, form, model, is_created):
+        if form.parent_page.data:
+            model.parent_id = form.parent_page.data.id
+        else:
+            model.parent_id = None
 
 class CustomRegistrationFormView(ModelView):
     column_list = ('name', 'description')
@@ -190,13 +229,59 @@ admin.add_view(CustomPhotoView(Photo, db.session))
 @app.route('/')
 def home():
     events = Event.query.order_by(Event.id.desc()).limit(5).all() # Latest 5 events
+    upcoming_events = Event.query.filter_by(is_upcoming=True).order_by(Event.id.desc()).all() # Upcoming events
     activities = Activity.query.order_by(Activity.id.desc()).limit(5).all() # Latest 5 activities
-    return render_template('home.html', events=events, activities=activities)
+    
+    # Build page tree
+    pages = Page.query.order_by(Page.order, Page.title).all()
+    page_tree = build_page_tree(pages)
+
+    return render_template('home.html', events=events, upcoming_events=upcoming_events, activities=activities, page_tree=page_tree)
+
+def build_page_tree(pages):
+    page_dict = {page.id: {'page': page, 'children': []} for page in pages}
+    tree = []
+    for page in pages:
+        if page.parent_id is None:
+            tree.append(page_dict[page.id])
+        else:
+            if page.parent_id in page_dict:
+                page_dict[page.parent_id]['children'].append(page_dict[page.id])
+    return tree
 
 @app.route('/page/<slug>')
 def static_page(slug):
     page = Page.query.filter_by(slug=slug).first_or_404()
-    return render_template('static_page.html', page=page)
+    
+    # Fetch events linked to this page
+    linked_events = Event.query.filter_by(page_id=page.id).all()
+
+    # Process content for embedded activities and events
+    processed_content = page.content
+    
+    # Regex to find [activity:ID]
+    activity_matches = re.findall(r'\[activity:(\d+)\]', processed_content)
+    for activity_id in activity_matches:
+        activity = Activity.query.get(activity_id)
+        if activity:
+            # Render activity details (you might want a more elaborate template for this)
+            activity_html = render_template('_activity_embed.html', activity=activity)
+            processed_content = processed_content.replace(f'[activity:{activity_id}]', activity_html)
+        else:
+            processed_content = processed_content.replace(f'[activity:{activity_id}]', f'<p>Activity with ID {activity_id} not found.</p>')
+
+    # Regex to find [event:ID]
+    event_matches = re.findall(r'\[event:(\d+)\]', processed_content)
+    for event_id in event_matches:
+        event = Event.query.get(event_id)
+        if event:
+            # Render event details (you might want a more elaborate template for this)
+            event_html = render_template('_event_embed.html', event=event)
+            processed_content = processed_content.replace(f'[event:{event_id}]', event_html)
+        else:
+            processed_content = processed_content.replace(f'[event:{event_id}]', f'<p>Event with ID {event_id} not found.</p>')
+
+    return render_template('static_page.html', page=page, processed_content=processed_content, linked_events=linked_events)
 
 @app.route('/event/<int:event_id>')
 def event_detail(event_id):
@@ -259,6 +344,4 @@ def register_form(form_id):
     return render_template('registration_form.html', form=form, registration_form=registration_form)
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)

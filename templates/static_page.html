@@ -3,6 +3,18 @@
 {% block content %}
     <h1>{{ page.title }}</h1>
     <div>
-        {{ page.content | safe }}
+        {{ processed_content | safe }}
     </div>
+
+    {% if linked_events %}
+        <hr>
+        <h2>Events Linked to This Page</h2>
+        <div class="row">
+            {% for event in linked_events %}
+                <div class="col-md-6 mb-4">
+                    {% include '_event_embed.html' %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
 {% endblock %}
