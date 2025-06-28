@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h1>{{ event.title }}</h1>
+        </div>
+        <div class="card-body">
+            <p class="card-text">{{ event.description }}</p>
+            {% if event.schedule %}
+                <h5>Schedule:</h5>
+                <p>{{ event.schedule }}</p>
+            {% endif %}
+            {% if event.organizing_body %}
+                <h5>Organizing Body:</h5>
+                <p>{{ event.organizing_body }}</p>
+            {% endif %}
+
+            {% if event.photos %}
+                <h5 class="mt-4">Gallery:</h5>
+                <div class="row">
+                    {% for photo in event.photos %}
+                        <div class="col-md-4 mb-3">
+                            <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" class="img-fluid rounded" alt="{{ photo.caption }}">
+                            {% if photo.caption %}
+                                <p class="text-center mt-2">{{ photo.caption }}</p>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>No photos available for this event.</p>
+            {% endif %}
+
+            {% if event.registration_form %}
+                <h5 class="mt-4">Registration:</h5>
+                <a href="{{ url_for('register_form', form_id=event.registration_form.id) }}" class="btn btn-primary">Register for this Event</a>
+            {% else %}
+                <p>No registration form available for this event.</p>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

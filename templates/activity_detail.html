@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h1>{{ activity.title }}</h1>
+        </div>
+        <div class="card-body">
+            <p class="card-text">{{ activity.description }}</p>
+
+            {% if activity.photos %}
+                <h5 class="mt-4">Gallery:</h5>
+                <div class="row">
+                    {% for photo in activity.photos %}
+                        <div class="col-md-4 mb-3">
+                            <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" class="img-fluid rounded" alt="{{ photo.caption }}">
+                            {% if photo.caption %}
+                                <p class="text-center mt-2">{{ photo.caption }}</p>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>No photos available for this activity.</p>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
