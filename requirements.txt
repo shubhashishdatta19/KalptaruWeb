@@ -1,0 +1,10 @@
+Flask
+Flask-SQLAlchemy
+Flask-Migrate
+Flask-Admin
+Flask-WTF
+WTForms
+WTForms-SQLAlchemy
+Flask-CKEditor
+Werkzeug
+alembic
