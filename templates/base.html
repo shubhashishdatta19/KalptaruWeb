@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kalpataru Cultural Association</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    {{ ckeditor.load() }} {# New line to load CKEditor #}
     <style>
         body {
             padding-top: 56px; /* Adjust for fixed navbar */
@@ -52,6 +53,7 @@
             {% endif %}
         {% endwith %}
         {% block content %}{% endblock %}
+        {{ ckeditor.config(name='content') }} {# New line to initialize CKEditor for 'content' field #}
     </div>
 
     <footer class="footer">

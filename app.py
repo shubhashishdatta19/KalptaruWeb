@@ -5,13 +5,9 @@ from flask_admin.contrib.sqla import ModelView
 from flask_wtf import FlaskForm
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_sqlalchemy import SQLAlchemy
-# from flask_admin import Admin
-# from flask_admin.contrib.sqla import ModelView
 from flask_wtf import FlaskForm
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_sqlalchemy import SQLAlchemy
-# from flask_admin import Admin
-# from flask_admin.contrib.sqla import ModelView
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SubmitField, SelectField, BooleanField
 from wtforms.validators import DataRequired, Length, Optional
@@ -22,14 +18,16 @@ import os
 from datetime import datetime
 import re
 from flask_migrate import Migrate
+from flask_ckeditor import CKEditor, CKEditorField # New import
 
 app = Flask(__name__)
+ckeditor = CKEditor(app) # Initialize CKEditor
 
 # Forms
 class PageForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired(), Length(max=100)])
     slug = StringField('Slug', validators=[DataRequired(), Length(max=100)])
-    content = TextAreaField('Content', validators=[DataRequired()])
+    content = CKEditorField('Content', validators=[DataRequired()]) # Changed to CKEditorField
     order = StringField('Order', validators=[Optional()])
     parent_page = QuerySelectField('Parent Page', query_factory=lambda: Page.query.order_by(Page.title).all(), get_label='title', allow_blank=True, blank_text='-- No Parent --')
     submit = SubmitField('Submit')
@@ -202,6 +200,8 @@ class CustomActivityView(ModelView):
 class CustomPageView(ModelView):
     column_list = ('title', 'slug', 'order', 'parent')
     form_columns = ('title', 'slug', 'content', 'order', 'parent_page')
+    form_overrides = dict(content=CKEditorField)
+    edit_template = 'admin/page_edit.html'
     form = PageForm # Use the custom form
 
     def on_model_change(self, form, model, is_created):
