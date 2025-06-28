@@ -42,8 +42,15 @@ class EventForm(FlaskForm):
     is_upcoming = BooleanField('Upcoming Event (Show on Home Page)')
     submit = SubmitField('Submit')
 
+from wtforms.widgets import FileInput
+
+class MultiFileInput(FileInput):
+    def __call__(self, field, **kwargs):
+        kwargs.setdefault('multiple', True)
+        return super().__call__(field, **kwargs)
+
 class PhotoForm(FlaskForm):
-    photo_file = FileField('Image File', validators=[FileAllowed(['jpg', 'png', 'jpeg', 'gif'], 'Images only!')])
+    photo_file = FileField('Image File', widget=MultiFileInput(), validators=[FileAllowed(['jpg', 'png', 'jpeg', 'gif'], 'Images only!')])
     caption = StringField('Caption', validators=[Optional(), Length(max=200)])
     event = QuerySelectField('Event', query_factory=lambda: Event.query.all(), get_label='title', allow_blank=True, blank_text='-- Select Event --')
     activity = QuerySelectField('Activity', query_factory=lambda: Activity.query.all(), get_label='title', allow_blank=True, blank_text='-- Select Activity --')
@@ -137,17 +144,22 @@ class CustomPhotoView(ModelView):
     column_list = ('filename', 'caption', 'event', 'activity')
 
     def create_model(self, form):
-        file_data = request.files.get(form.photo_file.name)
-        if file_data:
-            filename = secure_filename(file_data.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file_data.save(file_path)
-            
-            model = self.model(filename=filename,
-                               caption=form.caption.data,
-                               event=form.event.data,
-                               activity=form.activity.data)
-            self.session.add(model)
+        file_list = request.files.getlist(form.photo_file.name)
+        created = False
+        for file_data in file_list:
+            if file_data and file_data.filename:
+                filename = secure_filename(file_data.filename)
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file_data.save(file_path)
+                model = self.model(
+                    filename=filename,
+                    caption=form.caption.data,
+                    event=form.event.data,
+                    activity=form.activity.data
+                )
+                self.session.add(model)
+                created = True
+        if created:
             self.session.commit()
             return True
         return False
