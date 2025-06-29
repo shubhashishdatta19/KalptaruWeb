@@ -5,8 +5,9 @@ from wtforms_sqlalchemy.fields import QuerySelectField
 from flask_wtf.file import FileField, FileAllowed
 from wtforms.widgets import FileInput
 from flask_ckeditor import CKEditorField
+from wtforms.widgets import ColorInput
 
-from .models import Page, RegistrationForm, Event, Activity
+from .models import Page, RegistrationForm, Event, Activity, SiteTheme
 
 class PageForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired(), Length(max=100)])
@@ -37,3 +38,28 @@ class PhotoForm(FlaskForm):
     event = QuerySelectField('Event', query_factory=lambda: Event.query.all(), get_label='title', allow_blank=True, blank_text='-- Select Event --')
     activity = QuerySelectField('Activity', query_factory=lambda: Activity.query.all(), get_label='title', allow_blank=True, blank_text='-- Select Activity --')
     submit = SubmitField('Submit')
+
+class SiteThemeForm(FlaskForm):
+    name = StringField('Theme Name', validators=[DataRequired(), Length(max=100)])
+    is_active = BooleanField('Activate Theme')
+    primary_color = StringField('Primary Color', widget=ColorInput())
+    secondary_color = StringField('Secondary Color', widget=ColorInput())
+    accent_color = StringField('Accent Color', widget=ColorInput())
+    font_family = SelectField('Font Family', choices=[
+        ('system-ui, -apple-system, sans-serif', 'System Default'),
+        ('Arial, sans-serif', 'Arial'),
+        ('Helvetica, sans-serif', 'Helvetica'),
+        ('Georgia, serif', 'Georgia'),
+        ('Verdana, sans-serif', 'Verdana'),
+        ('Roboto, sans-serif', 'Roboto')
+    ])
+    layout_type = SelectField('Layout Type', choices=[
+        ('full-width', 'Full Width'),
+        ('boxed', 'Boxed')
+    ])
+    navigation_style = SelectField('Navigation Style', choices=[
+        ('standard', 'Standard'),
+        ('centered', 'Centered')
+    ])
+    custom_css = TextAreaField('Custom CSS', validators=[Optional()])
+    submit = SubmitField('Save Theme')

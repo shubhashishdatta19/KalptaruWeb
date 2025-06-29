@@ -66,3 +66,24 @@ class Photo(db.Model):
 
     def __repr__(self):
         return f"Photo('{self.filename}')"
+
+class SiteTheme(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    is_active = db.Column(db.Boolean, default=False)
+    primary_color = db.Column(db.String(50), default='#007bff')
+    secondary_color = db.Column(db.String(50), default='#6c757d')
+    accent_color = db.Column(db.String(50), default='#28a745')
+    font_family = db.Column(db.String(200), default='system-ui, -apple-system, sans-serif')
+    layout_type = db.Column(db.String(50), default='full-width')  # full-width or boxed
+    navigation_style = db.Column(db.String(50), default='standard')  # standard or centered
+    custom_css = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+    def __repr__(self):
+        return f"SiteTheme('{self.name}')"
+
+    @staticmethod
+    def get_active_theme():
+        return SiteTheme.query.filter_by(is_active=True).first() or SiteTheme.query.first()

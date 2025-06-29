@@ -6,11 +6,15 @@ from flask_ckeditor import CKEditor
 
 db = SQLAlchemy()
 migrate = Migrate()
-admin = Admin(name='Kalpataru Admin', template_mode='bootstrap3')
 ckeditor = CKEditor()
+
+# Create a single Flask-Admin instance
+admin = Admin(name='Kalpataru Admin', template_mode='bootstrap3', url='/admin')
 
 def create_app():
     import os
+    from .models import SiteTheme
+    
     base_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
     template_dir = os.path.join(base_dir, 'templates')
     static_dir = os.path.join(base_dir, 'static')
@@ -20,12 +24,21 @@ def create_app():
 
     db.init_app(app)
     migrate.init_app(app, db)
-    admin.init_app(app)
     ckeditor.init_app(app)
+    admin.init_app(app)  # Initialize the admin instance
+
+    @app.context_processor
+    def inject_theme():
+        def get_theme():
+            with app.app_context():
+                return SiteTheme.get_active_theme()
+        return dict(theme=get_theme())
 
     from . import models, forms, routes
     app.register_blueprint(routes.main)
-    import app.admin as admin_module
-    admin_module.register_admin_views(app)
+
+    # Register admin views after admin is initialized
+    from . import admin_views
+    admin_views.register_admin_views()
 
     return app

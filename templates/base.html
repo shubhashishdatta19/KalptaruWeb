@@ -4,66 +4,211 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kalpataru Cultural Association</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    {{ ckeditor.load() }} {# New line to load CKEditor #}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="{{ url_for('static', filename='css/theme.css') }}" rel="stylesheet">
+    {{ ckeditor.load() }}
     <style>
-        body {
-            padding-top: 56px; /* Adjust for fixed navbar */
-        }
-        .footer {
-            background-color: #f8f9fa;
-            padding: 20px 0;
-            text-align: center;
-            margin-top: 40px;
+        :root {
+            --primary-color: {{ theme().primary_color }};
+            --secondary-color: {{ theme().secondary_color }};
+            --accent-color: {{ theme().accent_color }};
+            --font-family: {{ theme().font_family }};
         }
     </style>
 </head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
-        <div class="container">
-<a class="navbar-brand" href="{{ url_for('main.home') }}">Kalpataru Cultural Association</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ml-auto">
-                    <li class="nav-item">
-<a class="nav-link" href="{{ url_for('main.home') }}">Home</a>
-                    </li>
-                    <li class="nav-item">
-<a class="nav-link" href="{{ url_for('main.static_page', slug='about') }}">About Us</a>
-                    </li>
-                    <li class="nav-item">
-<a class="nav-link" href="{{ url_for('main.static_page', slug='contact') }}">Contact</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/admin/">Admin</a>
-                    </li>
-                </ul>
+<body class="min-h-screen flex flex-col {% if theme().layout_type == 'boxed' %}layout-boxed{% endif %}">
+    <!-- Page Header -->
+    <nav class="bg-primary shadow-lg {% if theme().navigation_style == 'centered' %}nav-centered{% endif %}">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <a href="{{ url_for('main.home') }}" class="text-white text-2xl font-bold">Kalpataru Cultural Association</a>
+                <button class="lg:hidden text-white" onclick="toggleMenu()">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-16 6h16"></path>
+                    </svg>
+                </button>
+                <div class="hidden lg:flex space-x-8">
+                    <a href="{{ url_for('main.home') }}" class="text-white hover:text-gray-200">Home</a>
+                    <a href="{{ url_for('main.static_page', slug='about') }}" class="text-white hover:text-gray-200">About Us</a>
+                    <a href="{{ url_for('main.static_page', slug='contact') }}" class="text-white hover:text-gray-200">Contact</a>
+                    <a href="/admin/" class="text-white hover:text-gray-200">Admin</a>
+                </div>
+            </div>
+            <!-- Mobile menu -->
+            <div id="mobile-menu" class="hidden lg:hidden pb-4">
+                <a href="{{ url_for('main.home') }}" class="block text-white py-2">Home</a>
+                <a href="{{ url_for('main.static_page', slug='about') }}" class="block text-white py-2">About Us</a>
+                <a href="{{ url_for('main.static_page', slug='contact') }}" class="block text-white py-2">Contact</a>
+                <a href="/admin/" class="block text-white py-2">Admin</a>
             </div>
         </div>
     </nav>
 
-    <div class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        {% block content %}{% endblock %}
-        {{ ckeditor.config(name='content') }} {# New line to initialize CKEditor for 'content' field #}
+    <!-- Main content area with three columns -->
+    <div class="flex flex-grow">
+        <!-- Left Sidebar -->
+        <div id="page-tree-sidebar" class="w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out z-50 overflow-y-auto border-r border-gray-200">
+            <div class="p-4 bg-primary">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-white font-semibold">Pages</h2>
+                    <!-- Sidebar is now always visible; toggle removed -->
+                </div>
+            </div>
+            <div id="page-tree" class="p-4">
+                <!-- Page tree will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Central Content with Background Image -->
+        <div class="flex-grow relative bg-cover bg-center min-h-full overflow-hidden" style="background-image: url('{{ url_for('static', filename='WebSiteImages/background.jpg') }}');">
+            <div class="absolute inset-0 bg-black opacity-50"></div> <!-- Optional overlay for text readability -->
+            <main class="relative z-10 container mx-auto px-4 py-8 flex flex-col flex-grow">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="mb-4 p-4 rounded {% if category == 'success' %}bg-green-100 text-green-700{% elif category == 'error' %}bg-red-100 text-red-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                {% block content %}{% endblock %}
+                {{ ckeditor.config(name='content') }}
+            </main>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div id="right-sidebar" class="w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out z-50 overflow-y-auto border-l border-gray-200">
+            <div class="p-4 bg-primary">
+                <h2 class="text-white font-semibold">Gallery</h2>
+            </div>
+            <div class="p-4">
+                <!-- Gallery content will go here -->
+                <p>Image gallery coming soon!</p>
+            </div>
+            <div class="p-4 bg-primary mt-4">
+                <h2 class="text-white font-semibold">Upcoming Events</h2>
+            </div>
+            <div class="p-4">
+                <!-- Upcoming events content will go here -->
+                {% if upcoming_events %}
+                    {% for event in upcoming_events %}
+                        {% include '_event_embed.html' %}
+                    {% endfor %}
+                {% else %}
+                    <p>No upcoming events.</p>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; {{ current_year }} Kalpataru Cultural Association. All rights reserved.</p>
+    <footer class="bg-gray-100 py-8 mt-auto">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-gray-600">&copy; {{ current_year }} Kalpataru Cultural Association. All rights reserved.</p>
         </div>
     </footer>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Page Tree functionality
+        const sidebar = document.getElementById('page-tree-sidebar');
+        const pageTreeContainer = document.getElementById('page-tree');
+        let pageTree = [];
+        
+        // Initialize page tree data
+        window.addEventListener('DOMContentLoaded', () => {
+            try {
+                const rawData = '{{ page_tree|tojson|safe }}';
+                if (rawData && rawData !== 'None') {
+                    pageTree = JSON.parse(rawData.replace(/&#34;/g, '"'));
+                    renderPageTree();
+                    
+                    // Set initial state based on current page
+                    const currentPath = window.location.pathname;
+                    if (currentPath.startsWith('/page/')) {
+                        const currentSlug = currentPath.split('/')[2];
+                        highlightCurrentPage(currentSlug);
+                    }
+                }
+            } catch (e) {
+                console.warn('Error parsing page tree data:', e);
+            }
+        });
+        // Sidebar is always visible; toggle logic removed
+
+        function highlightCurrentPage(slug) {
+            const allLinks = document.querySelectorAll('#page-tree a');
+            allLinks.forEach(link => {
+                const linkSlug = link.getAttribute('href').split('/')[2];
+                if (linkSlug === slug) {
+                    link.classList.add('text-primary', 'font-semibold');
+                    // Expand parent containers
+                    let parent = link.closest('.children');
+                    while (parent) {
+                        parent.classList.remove('hidden');
+                        const toggleBtn = parent.parentElement.querySelector('svg');
+                        if (toggleBtn) {
+                            toggleBtn.classList.add('rotate-90');
+                        }
+                        parent = parent.parentElement.closest('.children');
+                    }
+                }
+            });
+        }
+
+        function createTreeItem(page) {
+            const item = document.createElement('div');
+            item.className = 'my-2 py-1';
+            
+            const content = document.createElement('div');
+            content.className = 'flex items-center space-x-2 hover:bg-gray-50 rounded px-2 py-1 -mx-2 transition-colors duration-200';
+            
+            if (page.children && page.children.length > 0) {
+                const toggleBtn = document.createElement('button');
+                toggleBtn.innerHTML = `
+                    <svg class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                `;
+                toggleBtn.className = 'text-gray-500 hover:text-gray-700';
+                toggleBtn.onclick = () => {
+                    const childrenContainer = item.querySelector('.children');
+                    childrenContainer.classList.toggle('hidden');
+                    toggleBtn.querySelector('svg').classList.toggle('rotate-90');
+                };
+                content.appendChild(toggleBtn);
+            }
+            
+            const link = document.createElement('a');
+            link.href = `/page/${page.page.slug}`;
+            link.textContent = page.page.title;
+            link.className = 'text-gray-700 hover:text-primary transition-colors duration-200';
+            content.appendChild(link);
+            
+            item.appendChild(content);
+            
+            if (page.children && page.children.length > 0) {
+            const childrenContainer = document.createElement('div');
+            childrenContainer.className = 'children hidden ml-4 mt-1 border-l border-gray-200 pl-4 border-opacity-50';
+                page.children.forEach(child => {
+                    childrenContainer.appendChild(createTreeItem(child));
+                });
+                item.appendChild(childrenContainer);
+            }
+            
+            return item;
+        }
+
+        function renderPageTree() {
+            pageTreeContainer.innerHTML = '';
+            pageTree.forEach(page => {
+                pageTreeContainer.appendChild(createTreeItem(page));
+            });
+        }
+    </script>
 </body>
 </html>

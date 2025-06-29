@@ -1,11 +1,17 @@
-from flask import request
+from flask import request, redirect, url_for, flash
 from flask_admin.contrib.sqla import ModelView
+from flask_admin.form import Select2Widget
+from wtforms import SelectField
 from werkzeug.utils import secure_filename
 import os
+import uuid
 
-from . import admin, db
-from .models import Event, Activity, Page, RegistrationForm, FormField, Photo
-from .forms import EventForm, PageForm, PhotoForm
+from . import db, admin
+from .models import Event, Activity, Page, RegistrationForm, FormField, Photo, SiteTheme
+from .forms import EventForm, PageForm, PhotoForm, SiteThemeForm
+
+def unique_endpoint():
+    return str(uuid.uuid4())[:8]
 
 class CustomPhotoView(ModelView):
     form = PhotoForm
@@ -87,8 +93,6 @@ class CustomRegistrationFormView(ModelView):
     column_list = ('name', 'description')
     form_columns = ('name', 'description', 'fields')
 
-from wtforms import SelectField
-
 class CustomFormFieldView(ModelView):
     column_list = ('form', 'field_name', 'field_type', 'required')
     form_columns = ('form', 'field_name', 'field_type', 'options', 'required')
@@ -96,22 +100,57 @@ class CustomFormFieldView(ModelView):
     form_args = dict(
         field_type=dict(
             choices=[
-                ('text', 'Text'),
-                ('textarea', 'Textarea'),
-                ('select', 'Select'),
-                ('checkbox', 'Checkbox'),
-                ('radio', 'Radio'),
-                ('email', 'Email'),
-                ('number', 'Number'),
-                ('date', 'Date'),
+                ('text', 'Text', False, {}),
+                ('textarea', 'Textarea', False, {}),
+                ('select', 'Select', False, {}),
+                ('checkbox', 'Checkbox', False, {}),
+                ('radio', 'Radio', False, {}),
+                ('email', 'Email', False, {}),
+                ('number', 'Number', False, {}),
+                ('date', 'Date', False, {}),
             ]
         )
     )
 
-def register_admin_views(app):
-    admin.add_view(CustomEventView(Event, db.session))
-    admin.add_view(CustomActivityView(Activity, db.session))
-    admin.add_view(CustomPageView(Page, db.session))
-    admin.add_view(CustomRegistrationFormView(RegistrationForm, db.session))
-    admin.add_view(CustomFormFieldView(FormField, db.session))
-    admin.add_view(CustomPhotoView(Photo, db.session))
+class ThemeView(ModelView):
+    form = SiteThemeForm
+    column_list = ('name', 'is_active', 'primary_color', 'secondary_color', 'layout_type')
+    
+    form_widget_args = {
+        'primary_color': {'type': 'color'},
+        'secondary_color': {'type': 'color'},
+        'accent_color': {'type': 'color'},
+    }
+
+    form_overrides = {
+        'font_family': SelectField,
+        'layout_type': SelectField,
+        'navigation_style': SelectField
+    }
+
+    def on_model_change(self, form, model, is_created):
+        if model.is_active:
+            # Deactivate all other themes
+            other_themes = self.session.query(SiteTheme).filter(SiteTheme.id != model.id)
+            for theme in other_themes:
+                theme.is_active = False
+            self.session.commit()
+        flash('Theme settings updated successfully!', 'success')
+
+def register_admin_views():
+    # Check if views are already registered to avoid duplicates
+    registered_endpoints = [view.endpoint for view in admin._views]
+    
+    view_configs = [
+        (CustomEventView, Event, 'Events', 'admin_events'),
+        (CustomActivityView, Activity, 'Activities', 'admin_activities'),
+        (CustomPageView, Page, 'Pages', 'admin_pages'),
+        (CustomRegistrationFormView, RegistrationForm, 'Forms', 'admin_forms'),
+        (CustomFormFieldView, FormField, 'Form Fields', 'admin_form_fields'),
+        (CustomPhotoView, Photo, 'Photos', 'admin_photos'),
+        (ThemeView, SiteTheme, 'Theme Settings', 'admin_theme')
+    ]
+    
+    for view_class, model, name, endpoint in view_configs:
+        if endpoint not in registered_endpoints:
+            admin.add_view(view_class(model, db.session, name=name, endpoint=endpoint))

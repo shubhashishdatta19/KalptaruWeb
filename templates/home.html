@@ -1,65 +1,16 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <div class="row">
-        <div class="col-md-3">
-            <h2>Pages</h2>
-            <ul class="list-group">
-                {% macro render_page_tree(nodes) %}
-                    {% for node in nodes %}
-                        <li class="list-group-item">
-<a href="{{ url_for('main.static_page', slug=node.page.slug) }}">{{ node.page.title }}</a>
-                            {% if node.children %}
-                                <ul class="list-group mt-2">
-                                    {{ render_page_tree(node.children) }}
-                                </ul>
-                            {% endif %}
-                        </li>
-                    {% endfor %}
-                {% endmacro %}
-                {{ render_page_tree(page_tree) }}
-            </ul>
-        </div>
-        <div class="col-md-9">
-            <div class="jumbotron text-center">
-                <h1 class="display-4">Welcome to Kalpataru Cultural Association</h1>
-                <p class="lead">Fostering culture, community, and creativity.</p>
-                <hr class="my-4">
-                <p>Join us in our journey to celebrate and promote rich cultural heritage through various events and activities.</p>
-            </div>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <h2>Latest Activities</h2>
-                    {% if activities %}
-                        <div class="list-group">
-                            {% for activity in activities %}
-<a href="{{ url_for('main.activity_detail', activity_id=activity.id) }}" class="list-group-item list-group-item-action">
-                                    <h5 class="mb-1">{{ activity.title }}</h5>
-                                    <small>{{ activity.description[:100] }}...</small>
-                                </a>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <p>No recent activities to display.</p>
-                    {% endif %}
-                </div>
-                <div class="col-md-6">
-                    <h2>Upcoming Events</h2>
-                    {% if upcoming_events %}
-                        <div class="list-group">
-                            {% for event in upcoming_events %}
-<a href="{{ url_for('main.event_detail', event_id=event.id) }}" class="list-group-item list-group-item-action">
-                                    <h5 class="mb-1">{{ event.title }}</h5>
-                                    <small>{{ event.schedule[:100] if event.schedule else '' }}...</small>
-                                </a>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <p>No events marked as upcoming to display.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+<div class="flex flex-col flex-grow justify-end items-center text-center p-8">
+    <div class="mt-auto">
+        <p class="text-white text-4xl font-bold mb-8">
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+            Welcome to Kalpataru Cultural Association<br>Fostering culture, community, and creativity
+        </p>
     </div>
+</div>
 {% endblock %}

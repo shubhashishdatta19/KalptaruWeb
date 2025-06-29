@@ -14,20 +14,31 @@ from flask_ckeditor import CKEditorField
 main = Blueprint('main', __name__)
 
 @main.app_context_processor
-def inject_current_year():
-    return {'current_year': datetime.now().year}
+def inject_template_vars():
+    from .models import SiteTheme, Event
+    return {
+        'current_year': datetime.now().year,
+        'theme': SiteTheme.get_active_theme,
+        'upcoming_events': Event.query.filter_by(is_upcoming=True).order_by(Event.id.desc()).all()
+    }
 
 @main.route('/')
 def home():
     events = Event.query.order_by(Event.id.desc()).limit(5).all()
-    upcoming_events = Event.query.filter_by(is_upcoming=True).order_by(Event.id.desc()).all()
     activities = Activity.query.order_by(Activity.id.desc()).limit(5).all()
     pages = Page.query.order_by(Page.order, Page.title).all()
     page_tree = build_page_tree(pages)
-    return render_template('home.html', events=events, upcoming_events=upcoming_events, activities=activities, page_tree=page_tree)
+    return render_template('home.html', events=events, activities=activities, page_tree=page_tree)
+
+def serialize_page(page):
+    return {
+        'title': page.title,
+        'slug': page.slug,
+        'id': page.id
+    }
 
 def build_page_tree(pages):
-    page_dict = {page.id: {'page': page, 'children': []} for page in pages}
+    page_dict = {page.id: {'page': serialize_page(page), 'children': []} for page in pages}
     tree = []
     for page in pages:
         if page.parent_id is None:
@@ -39,6 +50,8 @@ def build_page_tree(pages):
 
 @main.route('/page/<slug>')
 def static_page(slug):
+    pages = Page.query.order_by(Page.order, Page.title).all()
+    page_tree = build_page_tree(pages)
     page = Page.query.filter_by(slug=slug).first_or_404()
     linked_events = Event.query.filter_by(page_id=page.id).all()
     processed_content = page.content
@@ -61,20 +74,26 @@ def static_page(slug):
         else:
             processed_content = processed_content.replace(f'[event:{event_id}]', f'<p>Event with ID {event_id} not found.</p>')
 
-    return render_template('static_page.html', page=page, processed_content=processed_content, linked_events=linked_events)
+    return render_template('static_page.html', page=page, processed_content=processed_content, linked_events=linked_events, page_tree=page_tree)
 
 @main.route('/event/<int:event_id>')
 def event_detail(event_id):
+    pages = Page.query.order_by(Page.order, Page.title).all()
+    page_tree = build_page_tree(pages)
     event = Event.query.get_or_404(event_id)
-    return render_template('event_detail.html', event=event)
+    return render_template('event_detail.html', event=event, page_tree=page_tree)
 
 @main.route('/activity/<int:activity_id>')
 def activity_detail(activity_id):
+    pages = Page.query.order_by(Page.order, Page.title).all()
+    page_tree = build_page_tree(pages)
     activity = Activity.query.get_or_404(activity_id)
-    return render_template('activity_detail.html', activity=activity)
+    return render_template('activity_detail.html', activity=activity, page_tree=page_tree)
 
 @main.route('/register/<int:form_id>', methods=['GET', 'POST'])
 def register_form(form_id):
+    pages = Page.query.order_by(Page.order, Page.title).all()
+    page_tree = build_page_tree(pages)
     registration_form = RegistrationForm.query.get_or_404(form_id)
 
     class DynamicForm(FlaskForm):
@@ -118,4 +137,4 @@ def register_form(form_id):
         flash('Registration successful!', 'success')
         return redirect(url_for('main.home'))
 
-    return render_template('registration_form.html', form=form, registration_form=registration_form)
+    return render_template('registration_form.html', form=form, registration_form=registration_form, page_tree=page_tree)
