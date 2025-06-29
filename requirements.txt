@@ -1,10 +1,7 @@
-Flask
-Flask-SQLAlchemy
-Flask-Migrate
-Flask-Admin
-Flask-WTF
-WTForms
-WTForms-SQLAlchemy
-Flask-CKEditor
-Werkzeug
-alembic
+Flask==2.3.2
+Flask-SQLAlchemy==3.0.3
+Flask-Migrate==4.0.4
+Flask-CKEditor==1.1.0
+Flask-Admin==1.6.0
+python-dotenv==1.0.0
+bleach
