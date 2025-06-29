@@ -101,14 +101,14 @@ class CustomFormFieldView(ModelView):
     form_args = dict(
         field_type=dict(
             choices=[
-                ('text', 'Text', False, {}),
-                ('textarea', 'Textarea', False, {}),
-                ('select', 'Select', False, {}),
-                ('checkbox', 'Checkbox', False, {}),
-                ('radio', 'Radio', False, {}),
-                ('email', 'Email', False, {}),
-                ('number', 'Number', False, {}),
-                ('date', 'Date', False, {}),
+                ('text', 'Text'),
+                ('textarea', 'Textarea'),
+                ('select', 'Select'),
+                ('checkbox', 'Checkbox'),
+                ('radio', 'Radio'),
+                ('email', 'Email'),
+                ('number', 'Number'),
+                ('date', 'Date'),
             ]
         )
     )
