@@ -1,3 +1,4 @@
 venv/*
 # static/uploads/*
 app/__pycache__/*
+node_modules/*

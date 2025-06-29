@@ -1,4 +1,4 @@
-from flask import render_template, redirect, url_for, request, flash, current_app
+from flask import render_template, redirect, url_for, request, flash, current_app, jsonify
 from flask import Blueprint
 from datetime import datetime
 import re
@@ -36,6 +36,45 @@ def build_page_tree(pages):
             if page.parent_id in page_dict:
                 page_dict[page.parent_id]['children'].append(page_dict[page.id])
     return tree
+
+@main.route('/api/home_data')
+def api_home_data():
+    events = Event.query.order_by(Event.id.desc()).limit(5).all()
+    upcoming_events = Event.query.filter_by(is_upcoming=True).order_by(Event.id.desc()).all()
+    activities = Activity.query.order_by(Activity.id.desc()).limit(5).all()
+    pages = Page.query.order_by(Page.order, Page.title).all()
+    page_tree = build_page_tree(pages)
+
+    def serialize_event(event):
+        return {
+            "id": event.id,
+            "title": event.title,
+            "date": event.date.isoformat() if event.date else None,
+            "is_upcoming": getattr(event, "is_upcoming", False),
+            "page_id": getattr(event, "page_id", None)
+        }
+
+    def serialize_activity(activity):
+        return {
+            "id": activity.id,
+            "title": activity.title,
+            "date": activity.date.isoformat() if hasattr(activity, "date") and activity.date else None
+        }
+
+    def serialize_page_node(node):
+        return {
+            "id": node["page"].id,
+            "title": node["page"].title,
+            "slug": node["page"].slug,
+            "children": [serialize_page_node(child) for child in node["children"]]
+        }
+
+    return jsonify({
+        "events": [serialize_event(e) for e in events],
+        "upcoming_events": [serialize_event(e) for e in upcoming_events],
+        "activities": [serialize_activity(a) for a in activities],
+        "page_tree": [serialize_page_node(n) for n in page_tree]
+    })
 
 @main.route('/page/<slug>')
 def static_page(slug):
