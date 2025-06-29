@@ -7,7 +7,8 @@ import os
 import uuid
 
 from . import db, admin
-from .models import Event, Activity, Page, RegistrationForm, FormField, Photo, SiteTheme
+from .models import Event, Activity, Page, RegistrationForm, FormField, Photo, SiteTheme, Sponsor
+from flask_admin import BaseView, expose
 from .forms import EventForm, PageForm, PhotoForm, SiteThemeForm
 
 def unique_endpoint():
@@ -137,6 +138,15 @@ class ThemeView(ModelView):
             self.session.commit()
         flash('Theme settings updated successfully!', 'success')
 
+class SponsorView(ModelView):
+    column_list = ('name', 'website_url', 'logo_filename', 'description')
+    form_columns = ('name', 'website_url', 'logo_filename', 'description')
+
+class CustomSponsorsPageView(BaseView):
+    @expose('/')
+    def index(self):
+        return self.render('admin/sponsors.html')
+
 def register_admin_views():
     # Check if views are already registered to avoid duplicates
     registered_endpoints = [view.endpoint for view in admin._views]
@@ -148,9 +158,14 @@ def register_admin_views():
         (CustomRegistrationFormView, RegistrationForm, 'Forms', 'admin_forms'),
         (CustomFormFieldView, FormField, 'Form Fields', 'admin_form_fields'),
         (CustomPhotoView, Photo, 'Photos', 'admin_photos'),
-        (ThemeView, SiteTheme, 'Theme Settings', 'admin_theme')
+        (ThemeView, SiteTheme, 'Theme Settings', 'admin_theme'),
+        (SponsorView, Sponsor, 'Sponsors', 'admin_sponsors')
     ]
     
     for view_class, model, name, endpoint in view_configs:
         if endpoint not in registered_endpoints:
             admin.add_view(view_class(model, db.session, name=name, endpoint=endpoint))
+    
+    # Add custom sponsors page view
+    if 'custom_sponsors_page' not in registered_endpoints:
+        admin.add_view(CustomSponsorsPageView(name='Custom Sponsors Page', endpoint='custom_sponsors_page', category='Admin'))

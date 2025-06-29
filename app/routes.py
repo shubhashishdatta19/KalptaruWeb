@@ -52,6 +52,11 @@ def build_page_tree(pages):
 def static_page(slug):
     pages = Page.query.order_by(Page.order, Page.title).all()
     page_tree = build_page_tree(pages)
+    if slug == 'contact':
+        return render_template('contact.html', page_tree=page_tree)
+    elif slug == 'about':
+        return render_template('about.html', page_tree=page_tree)
+    
     page = Page.query.filter_by(slug=slug).first_or_404()
     linked_events = Event.query.filter_by(page_id=page.id).all()
     processed_content = page.content

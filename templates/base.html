@@ -31,7 +31,6 @@
                     <a href="{{ url_for('main.home') }}" class="text-white hover:text-gray-200">Home</a>
                     <a href="{{ url_for('main.static_page', slug='about') }}" class="text-white hover:text-gray-200">About Us</a>
                     <a href="{{ url_for('main.static_page', slug='contact') }}" class="text-white hover:text-gray-200">Contact</a>
-                    <a href="/admin/" class="text-white hover:text-gray-200">Admin</a>
                 </div>
             </div>
             <!-- Mobile menu -->
@@ -39,7 +38,6 @@
                 <a href="{{ url_for('main.home') }}" class="block text-white py-2">Home</a>
                 <a href="{{ url_for('main.static_page', slug='about') }}" class="block text-white py-2">About Us</a>
                 <a href="{{ url_for('main.static_page', slug='contact') }}" class="block text-white py-2">Contact</a>
-                <a href="/admin/" class="block text-white py-2">Admin</a>
             </div>
         </div>
     </nav>
@@ -60,9 +58,9 @@
         </div>
 
         <!-- Central Content with Background Image -->
-        <div class="flex-grow relative bg-cover bg-center min-h-full overflow-hidden" style="background-image: url('{{ url_for('static', filename='WebSiteImages/background.jpg') }}');">
+        <div class="flex-grow relative bg-cover bg-center min-h-full overflow-y-auto" style="background-image: url('{{ url_for('static', filename='WebSiteImages/background.jpg') }}');">
             <div class="absolute inset-0 bg-black opacity-50"></div> <!-- Optional overlay for text readability -->
-            <main class="relative z-10 container mx-auto px-4 py-8 flex flex-col flex-grow">
+            <main class="relative z-10 container mx-auto px-4 py-8 flex flex-col flex-grow text-white">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
@@ -92,9 +90,11 @@
             <div class="p-4">
                 <!-- Upcoming events content will go here -->
                 {% if upcoming_events %}
+                    <ul class="list-disc pl-5">
                     {% for event in upcoming_events %}
-                        {% include '_event_embed.html' %}
+                        <li class="mb-1"><a href="{{ url_for('main.event_detail', event_id=event.id) }}" class="text-blue-600 hover:underline">{{ event.title }}</a></li>
                     {% endfor %}
+                    </ul>
                 {% else %}
                     <p>No upcoming events.</p>
                 {% endif %}
