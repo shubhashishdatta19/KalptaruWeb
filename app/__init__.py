@@ -24,6 +24,7 @@ def create_app():
     ckeditor.init_app(app)
 
     from . import models, forms, routes
+    app.register_blueprint(routes.main)
     import app.admin as admin_module
     admin_module.register_admin_views(app)
 
